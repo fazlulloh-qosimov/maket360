@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>360° Pro - GitHub Dashboard</title>
+    <title>360° Pro Dashboard - Realtime Sync</title>
     <style>
         :root { 
-            --primary: #00e676; 
-            --secondary: #00b0ff; 
-            --bg: #0a0a0a; 
-            --card-bg: #151515;
+            --primary: #00e676; --secondary: #00b0ff; 
+            --bg: #0a0a0a; --card-bg: #151515; --accent: #ff3d00;
         }
         
         body {
             margin: 0; padding: 0; background: var(--bg);
             color: #fff; font-family: 'Segoe UI', Roboto, sans-serif;
             display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; overflow: hidden;
+            min-height: 100vh; overflow: hidden; touch-action: none;
         }
 
+        /* Yuqori progress bar */
         #top-loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 4px;
             background: #222; z-index: 1000;
@@ -26,54 +25,62 @@
         #progress-bar {
             width: 0%; height: 100%; 
             background: linear-gradient(90deg, var(--primary), var(--secondary));
-            box-shadow: 0 0 10px var(--primary);
-            transition: width 0.2s ease;
+            box-shadow: 0 0 15px var(--primary);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .container { 
-            width: 95%; max-width: 1000px; 
-            margin-top: 5vh;
-            display: flex; flex-direction: column; align-items: center;
-        }
+        .container { width: 95%; max-width: 1000px; margin-top: 5vh; }
 
         #viewer {
-            width: 100%; aspect-ratio: 16 / 9;
+            position: relative; width: 100%; aspect-ratio: 16 / 9;
             background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
             border-radius: 15px; border: 1px solid #333;
             display: flex; align-items: center; justify-content: center;
-            cursor: grab; overflow: hidden; position: relative;
-            touch-action: none;
+            cursor: grab; overflow: hidden; transition: transform 0.3s;
         }
-        #viewer:active { cursor: grabbing; }
+        #viewer:active { cursor: grabbing; transform: scale(1.01); }
+        
         #product-image { 
             max-width: 100%; max-height: 100%; 
             object-fit: contain; pointer-events: none;
-            user-select: none;
+            user-select: none; transition: opacity 0.2s;
         }
 
+        /* 4 ta asosiy ko'rsatkich (Dashboard) */
         .dashboard {
-            margin-top: 30px; display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            margin-top: 25px; display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px; width: 100%;
-            transition: opacity 0.5s ease;
         }
         
         .stat-card {
-            background: var(--card-bg); padding: 15px; border-radius: 12px;
-            border-bottom: 2px solid #222;
-        }
-        
-        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
-        .stat-value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
-
-        #status-bubble {
-            grid-column: 1 / -1; text-align: center; color: var(--primary);
-            font-size: 1rem; font-weight: 500; margin-bottom: 10px;
-            animation: pulse 2s infinite;
+            background: var(--card-bg); padding: 20px; border-radius: 12px;
+            border: 1px solid #222; text-align: center;
+            position: relative; overflow: hidden;
+            animation: slideUp 0.5s ease backwards;
         }
 
-        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-        .fade-out { opacity: 0; visibility: hidden; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } }
+
+        .stat-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px; }
+        .stat-value { font-size: 1.3rem; font-weight: 900; margin-top: 8px; font-family: 'Courier New', monospace; }
+        .unit { font-size: 0.8rem; color: var(--secondary); margin-left: 4px; }
+
+        /* Bildirishnoma (Notification) */
+        #notif-system {
+            position: fixed; bottom: 20px; right: 20px; z-index: 100;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: #111; color: #fff; padding: 12px 25px; border-left: 4px solid var(--primary);
+            border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            animation: toastIn 0.3s ease-out;
+        }
+        @keyframes toastIn { from { transform: translateX(100%); } }
+
+        .pulse { animation: glow 2s infinite; }
+        @keyframes glow { 0%, 100% { color: var(--primary); } 50% { color: #fff; } }
+
     </style>
 </head>
 <body>
@@ -82,52 +89,65 @@
 
     <div class="container">
         <div id="viewer">
-            <img id="product-image" src="" alt="Yuklanmoqda...">
+            <img id="product-image" src="" alt="360 System Rendering...">
         </div>
 
-        <div class="dashboard" id="dashboard">
-            <div id="status-bubble">Tizim ishga tushmoqda...</div>
-            <div class="stat-card"><div class="stat-label">Progress</div><div class="stat-value"><span id="percent">0</span>%</div></div>
-            <div class="stat-card"><div class="stat-label">Qolgan vaqt</div><div id="time-left" class="stat-value">-- sek.</div></div>
-            <div class="stat-card"><div class="stat-label">Hajm</div><div id="data-size" class="stat-value">0.0 MB</div></div>
-            <div class="stat-card"><div class="stat-label">Tezlik</div><div id="speed" class="stat-value">0.0 MB/s</div></div>
+        <div class="dashboard">
+            <div class="stat-card" style="animation-delay: 0.1s">
+                <div class="stat-label">Tezlik (Real-time)</div>
+                <div id="speed" class="stat-value">0.00<span class="unit">MB/s</span></div>
+            </div>
+            <div class="stat-card" style="animation-delay: 0.2s">
+                <div class="stat-label">Ma'lumot hajmi</div>
+                <div id="data-flow" class="stat-value">0.0 <span style="color:#555">/</span> 0.0<span class="unit">MB</span></div>
+            </div>
+            <div class="stat-card" style="animation-delay: 0.3s">
+                <div class="stat-label">Progress</div>
+                <div id="percent" class="stat-value pulse">0%</div>
+            </div>
+            <div class="stat-card" style="animation-delay: 0.4s">
+                <div class="stat-label">Kadrlar (Frames)</div>
+                <div id="frames" class="stat-value">0 <span style="color:#555">/</span> 96</div>
+            </div>
         </div>
     </div>
 
+    <div id="notif-system"></div>
+
     <script>
-        // --- ASOSIY SOZLAMALAR ---
-        const totalFrames = 96;       // Jami rasmlar soni
-        const fileExtension = "jpg";  // Rasmlar formati
-        const avgFrameSize = 0.45;    // Taxminiy hajm (MB da) hisoblash uchun
+        const totalFrames = 96; 
+        const avgFrameSize = 0.52; // MB (Sizning rasmlaringiz o'rtacha hajmi)
+        const totalDataExpected = (totalFrames * avgFrameSize).toFixed(1);
         
         let loadedCount = 0;
         let images = [];
         let startTime = Date.now();
 
+        // Elementlar
         const imgEl = document.getElementById('product-image');
         const pBar = document.getElementById('progress-bar');
         const pText = document.getElementById('percent');
-        const tText = document.getElementById('time-left');
         const sText = document.getElementById('speed');
-        const dText = document.getElementById('data-size');
-        const statusBubble = document.getElementById('status-bubble');
-        const viewer = document.getElementById('viewer');
+        const dText = document.getElementById('data-flow');
+        const fText = document.getElementById('frames');
+        const notifSystem = document.getElementById('notif-system');
+
+        function addNotification(msg, color = '#00e676') {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderColor = color;
+            toast.innerText = msg;
+            notifSystem.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
 
         function init() {
+            addNotification("Tizim ishga tushdi", "#00b0ff");
             for (let i = 1; i <= totalFrames; i++) {
                 const img = new Image();
-                
-                // Rasmlar nomini generatsiya qilish (1.jpg, 2.jpg...)
-                // Agar rasmlar 01.jpg bo'lsa: i.toString().padStart(2, '0') + "." + fileExtension
-                const fileName = `${i}.${fileExtension}`; 
-                
-                img.src = fileName; 
-                
+                img.src = `${i}.jpg`; 
                 img.onload = () => updateProgress(i - 1, img.src);
-                img.onerror = () => {
-                    console.error("Rasm topilmadi:", fileName);
-                    updateProgress(i - 1, null);
-                };
+                img.onerror = () => updateProgress(i - 1, null);
             }
         }
 
@@ -137,95 +157,73 @@
             
             const progress = (loadedCount / totalFrames) * 100;
             const now = Date.now();
-            const elapsed = (now - startTime) / 1000;
+            const elapsedSeconds = (now - startTime) / 1000;
             
+            // 1. Mbps / Speed
+            const loadedMB = (loadedCount * avgFrameSize);
+            const speed = (loadedMB / elapsedSeconds).toFixed(2);
+            sText.innerHTML = `${speed}<span class="unit">MB/s</span>`;
+
+            // 2. Data MB / MB
+            dText.innerHTML = `${loadedMB.toFixed(1)} <span style="color:#555">/</span> ${totalDataExpected}<span class="unit">MB</span>`;
+
+            // 3. Percent
+            pText.innerText = Math.round(progress) + "%";
             pBar.style.width = progress + "%";
-            pText.innerText = Math.round(progress);
+
+            // 4. Frames count
+            fText.innerHTML = `${loadedCount} <span style="color:#555">/</span> ${totalFrames}`;
+
+            if (loadedCount === 1) addNotification("Birinchi kadr qabul qilindi");
+            if (loadedCount === Math.floor(totalFrames/2)) addNotification("50% yuklab bo'lindi", "#ffab00");
             
-            const totalDataMB = (loadedCount * avgFrameSize).toFixed(1);
-            dText.innerText = totalDataMB + " MB";
-            
-            if (elapsed > 0.1) {
-                const currentSpeed = (totalDataMB / elapsed).toFixed(2);
-                sText.innerText = currentSpeed + " MB/s";
-                const speedInFramesPerSec = loadedCount / elapsed;
-                const timeLeft = Math.ceil((totalFrames - loadedCount) / speedInFramesPerSec);
-                tText.innerText = timeLeft > 0 ? timeLeft + " sek." : "0 sek.";
+            if (loadedCount === totalFrames) {
+                imgEl.src = images[0];
+                addNotification("Muvaffaqiyatli yakunlandi!", "#00e676");
+                pText.classList.remove('pulse');
+                pText.style.color = "#00e676";
             }
-
-            if (progress < 40) statusBubble.innerText = "Kadrlar yuklanmoqda...";
-            else if (progress < 90) statusBubble.innerText = "3D model yig'ilmoqda...";
-            else statusBubble.innerText = "Deyarli tayyor...";
-
-            // Birinchi yuklangan rasmni darrov ko'rsatish
-            if (loadedCount === 1 && src) imgEl.src = src;
-            
-            if (loadedCount === totalFrames) finishLoading();
         }
 
-        function finishLoading() {
-            statusBubble.innerText = "Tayyor! Suring yoki aylantiring.";
-            statusBubble.style.color = "#00b0ff";
-            setTimeout(() => {
-                document.getElementById('top-loader').classList.add('fade-out');
-            }, 1000);
-        }
-
-        // --- INTERAKTIV BOSHQARUV ---
+        // Aylantirish logikasi (Silliq va aniq)
         let isDragging = false;
         let startX = 0;
-        let currentFrameIdx = 0;
+        let currentIdx = 0;
 
-        const handleStart = (e) => {
+        const startDragging = (e) => {
             isDragging = true;
             startX = (e.pageX || e.touches[0].pageX);
-            viewer.style.cursor = "grabbing";
         };
 
-        const handleMove = (e) => {
+        const moveDragging = (e) => {
             if (!isDragging) return;
-            const x = (e.pageX || (e.touches ? e.touches[0].pageX : 0));
+            const x = (e.pageX || e.touches[0].pageX);
             const diff = x - startX;
+            const sensitivity = 15; 
+            const offset = Math.floor(diff / sensitivity);
             
-            // Sezgirlik: har 10 piksel surilganda 1 kadr almashadi
-            const sensitivity = 10;
-            const frameOffset = Math.floor(diff / sensitivity);
-            
-            let displayIdx = (currentFrameIdx - frameOffset) % totalFrames;
+            let displayIdx = (currentIdx - offset) % totalFrames;
             if (displayIdx < 0) displayIdx += totalFrames;
             
-            if (images[displayIdx]) {
-                imgEl.src = images[displayIdx];
-            }
+            if (images[displayIdx]) imgEl.src = images[displayIdx];
         };
 
-        const handleEnd = (e) => {
+        const stopDragging = (e) => {
             if (!isDragging) return;
-            
-            const x = (e.pageX || (e.changedTouches ? e.changedTouches[0].pageX : startX));
+            const x = (e.pageX || e.changedTouches[0].pageX);
             const diff = x - startX;
-            
-            // Oxirgi kadrni saqlab qolish
-            currentFrameIdx = (currentFrameIdx - Math.floor(diff / 10)) % totalFrames;
-            if (currentFrameIdx < 0) currentFrameIdx += totalFrames;
-
+            currentIdx = (currentIdx - Math.floor(diff / 15)) % totalFrames;
+            if (currentIdx < 0) currentIdx += totalFrames;
             isDragging = false;
-            viewer.style.cursor = "grab";
         };
 
-        // Eventlarni bog'lash
-        viewer.addEventListener('mousedown', handleStart);
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('mouseup', handleEnd);
+        viewer.addEventListener('mousedown', startDragging);
+        window.addEventListener('mousemove', moveDragging);
+        window.addEventListener('mouseup', stopDragging);
+        viewer.addEventListener('touchstart', startDragging);
+        window.addEventListener('touchmove', (e) => { e.preventDefault(); moveDragging(e); }, {passive: false});
+        window.addEventListener('touchend', stopDragging);
 
-        viewer.addEventListener('touchstart', handleStart, {passive: false});
-        viewer.addEventListener('touchmove', (e) => { 
-            if(isDragging) e.preventDefault(); 
-            handleMove(e); 
-        }, {passive: false});
-        viewer.addEventListener('touchend', handleEnd);
-
-        // Ishga tushirish
         init();
     </script>
 </body>

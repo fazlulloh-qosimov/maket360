@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>360° Pro - Fixed Dashboard</title>
+    <title>360° Pro - GitHub Dashboard</title>
     <style>
         :root { 
             --primary: #00e676; 
@@ -42,7 +42,7 @@
             border-radius: 15px; border: 1px solid #333;
             display: flex; align-items: center; justify-content: center;
             cursor: grab; overflow: hidden; position: relative;
-            touch-action: none; /* Mobilda skrolni to'xtatish uchun muhim */
+            touch-action: none;
         }
         #viewer:active { cursor: grabbing; }
         #product-image { 
@@ -95,8 +95,11 @@
     </div>
 
     <script>
-        const totalFrames = 96;
-        const avgFrameSize = 0.45; 
+        // --- ASOSIY SOZLAMALAR ---
+        const totalFrames = 96;       // Jami rasmlar soni
+        const fileExtension = "jpg";  // Rasmlar formati
+        const avgFrameSize = 0.45;    // Taxminiy hajm (MB da) hisoblash uchun
+        
         let loadedCount = 0;
         let images = [];
         let startTime = Date.now();
@@ -111,11 +114,20 @@
         const viewer = document.getElementById('viewer');
 
         function init() {
-            for (let i = 0; i < totalFrames; i++) {
+            for (let i = 1; i <= totalFrames; i++) {
                 const img = new Image();
-                img.src = `https://picsum.photos/id/${i + 20}/800/450`; 
-                img.onload = () => updateProgress(i, img.src);
-                img.onerror = () => updateProgress(i, null);
+                
+                // Rasmlar nomini generatsiya qilish (1.jpg, 2.jpg...)
+                // Agar rasmlar 01.jpg bo'lsa: i.toString().padStart(2, '0') + "." + fileExtension
+                const fileName = `${i}.${fileExtension}`; 
+                
+                img.src = fileName; 
+                
+                img.onload = () => updateProgress(i - 1, img.src);
+                img.onerror = () => {
+                    console.error("Rasm topilmadi:", fileName);
+                    updateProgress(i - 1, null);
+                };
             }
         }
 
@@ -138,14 +150,16 @@
                 sText.innerText = currentSpeed + " MB/s";
                 const speedInFramesPerSec = loadedCount / elapsed;
                 const timeLeft = Math.ceil((totalFrames - loadedCount) / speedInFramesPerSec);
-                tText.innerText = timeLeft + " sek.";
+                tText.innerText = timeLeft > 0 ? timeLeft + " sek." : "0 sek.";
             }
 
             if (progress < 40) statusBubble.innerText = "Kadrlar yuklanmoqda...";
             else if (progress < 90) statusBubble.innerText = "3D model yig'ilmoqda...";
             else statusBubble.innerText = "Deyarli tayyor...";
 
-            if (loadedCount === 1) imgEl.src = src;
+            // Birinchi yuklangan rasmni darrov ko'rsatish
+            if (loadedCount === 1 && src) imgEl.src = src;
+            
             if (loadedCount === totalFrames) finishLoading();
         }
 
@@ -157,7 +171,7 @@
             }, 1000);
         }
 
-        // --- INTERAKTIV QISM ---
+        // --- INTERAKTIV BOSHQARUV ---
         let isDragging = false;
         let startX = 0;
         let currentFrameIdx = 0;
@@ -170,10 +184,10 @@
 
         const handleMove = (e) => {
             if (!isDragging) return;
-            const x = (e.pageX || e.touches[0].pageX);
+            const x = (e.pageX || (e.touches ? e.touches[0].pageX : 0));
             const diff = x - startX;
             
-            // 10 piksel surish = 1 kadr almashishi
+            // Sezgirlik: har 10 piksel surilganda 1 kadr almashadi
             const sensitivity = 10;
             const frameOffset = Math.floor(diff / sensitivity);
             
@@ -187,25 +201,31 @@
 
         const handleEnd = (e) => {
             if (!isDragging) return;
-            isDragging = false;
-            viewer.style.cursor = "grab";
             
-            // Joriy kadr indeksini yangilab qo'yamiz
             const x = (e.pageX || (e.changedTouches ? e.changedTouches[0].pageX : startX));
             const diff = x - startX;
+            
+            // Oxirgi kadrni saqlab qolish
             currentFrameIdx = (currentFrameIdx - Math.floor(diff / 10)) % totalFrames;
             if (currentFrameIdx < 0) currentFrameIdx += totalFrames;
+
+            isDragging = false;
+            viewer.style.cursor = "grab";
         };
 
-        // Eventlarni bog'lash (Tuzatilgan!)
+        // Eventlarni bog'lash
         viewer.addEventListener('mousedown', handleStart);
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('mouseup', handleEnd);
 
         viewer.addEventListener('touchstart', handleStart, {passive: false});
-        viewer.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, {passive: false});
+        viewer.addEventListener('touchmove', (e) => { 
+            if(isDragging) e.preventDefault(); 
+            handleMove(e); 
+        }, {passive: false});
         viewer.addEventListener('touchend', handleEnd);
 
+        // Ishga tushirish
         init();
     </script>
 </body>

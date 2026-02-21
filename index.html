@@ -2,8 +2,8 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360° Pro - Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>360° Pro - Fixed Dashboard</title>
     <style>
         :root { 
             --primary: #00e676; 
@@ -16,10 +16,9 @@
             margin: 0; padding: 0; background: var(--bg);
             color: #fff; font-family: 'Segoe UI', Roboto, sans-serif;
             display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; overflow-x: hidden; touch-action: none;
+            min-height: 100vh; overflow: hidden;
         }
 
-        /* Progress Bar */
         #top-loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 4px;
             background: #222; z-index: 1000;
@@ -28,72 +27,58 @@
             width: 0%; height: 100%; 
             background: linear-gradient(90deg, var(--primary), var(--secondary));
             box-shadow: 0 0 10px var(--primary);
-            transition: width 0.4s cubic-bezier(0.1, 0.5, 0.5, 1);
+            transition: width 0.2s ease;
         }
 
         .container { 
             width: 95%; max-width: 1000px; 
             margin-top: 5vh;
             display: flex; flex-direction: column; align-items: center;
-            animation: fadeIn 1s ease-out;
         }
 
-        /* Viewer Area */
         #viewer {
             width: 100%; aspect-ratio: 16 / 9;
             background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
             border-radius: 15px; border: 1px solid #333;
             display: flex; align-items: center; justify-content: center;
             cursor: grab; overflow: hidden; position: relative;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            touch-action: none; /* Mobilda skrolni to'xtatish uchun muhim */
         }
         #viewer:active { cursor: grabbing; }
         #product-image { 
             max-width: 100%; max-height: 100%; 
             object-fit: contain; pointer-events: none;
-            transition: transform 0.2s ease;
+            user-select: none;
         }
 
-        /* Dashboard Grid */
         .dashboard {
             margin-top: 30px; display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px; width: 100%;
-            transition: all 0.5s ease;
+            transition: opacity 0.5s ease;
         }
         
         .stat-card {
             background: var(--card-bg); padding: 15px; border-radius: 12px;
-            border-bottom: 2px solid #222; transition: transform 0.3s;
+            border-bottom: 2px solid #222;
         }
-        .stat-card:hover { transform: translateY(-5px); border-color: var(--secondary); }
         
         .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
-        .stat-value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; color: #fff; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
 
         #status-bubble {
             grid-column: 1 / -1; text-align: center; color: var(--primary);
             font-size: 1rem; font-weight: 500; margin-bottom: 10px;
-            letter-spacing: 1px; animation: pulse 2s infinite;
+            animation: pulse 2s infinite;
         }
 
-        /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-        
-        .fade-out { opacity: 0; visibility: hidden; transform: translateY(-20px); }
-
-        @media (max-width: 600px) {
-            #viewer { aspect-ratio: 4 / 3; }
-            .stat-value { font-size: 1rem; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .fade-out { opacity: 0; visibility: hidden; }
     </style>
 </head>
 <body>
 
-    <div id="top-loader">
-        <div id="progress-bar"></div>
-    </div>
+    <div id="top-loader"><div id="progress-bar"></div></div>
 
     <div class="container">
         <div id="viewer">
@@ -102,33 +87,16 @@
 
         <div class="dashboard" id="dashboard">
             <div id="status-bubble">Tizim ishga tushmoqda...</div>
-            
-            <div class="stat-card">
-                <div class="stat-label">Progress</div>
-                <div class="stat-value"><span id="percent">0</span>%</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-label">Qolgan vaqt</div>
-                <div id="time-left" class="stat-value">-- sek.</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-label">Hajm</div>
-                <div id="data-size" class="stat-value">0.0 MB</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-label">Tezlik</div>
-                <div id="speed" class="stat-value">0.0 MB/s</div>
-            </div>
+            <div class="stat-card"><div class="stat-label">Progress</div><div class="stat-value"><span id="percent">0</span>%</div></div>
+            <div class="stat-card"><div class="stat-label">Qolgan vaqt</div><div id="time-left" class="stat-value">-- sek.</div></div>
+            <div class="stat-card"><div class="stat-label">Hajm</div><div id="data-size" class="stat-value">0.0 MB</div></div>
+            <div class="stat-card"><div class="stat-label">Tezlik</div><div id="speed" class="stat-value">0.0 MB/s</div></div>
         </div>
     </div>
 
     <script>
         const totalFrames = 96;
-        const avgFrameSize = 0.45; // MB
-        
+        const avgFrameSize = 0.45; 
         let loadedCount = 0;
         let images = [];
         let startTime = Date.now();
@@ -140,14 +108,14 @@
         const sText = document.getElementById('speed');
         const dText = document.getElementById('data-size');
         const statusBubble = document.getElementById('status-bubble');
+        const viewer = document.getElementById('viewer');
 
         function init() {
-            for (let i = 1; i <= totalFrames; i++) {
+            for (let i = 0; i < totalFrames; i++) {
                 const img = new Image();
-                // Rasm manzilingizni tekshiring: i + ".jpg"
-                img.src = `https://picsum.photos/id/${i+10}/800/450`; // Test uchun random rasmlar
-                img.onload = () => updateProgress(i - 1, img.src);
-                img.onerror = () => updateProgress(i - 1, null);
+                img.src = `https://picsum.photos/id/${i + 20}/800/450`; 
+                img.onload = () => updateProgress(i, img.src);
+                img.onerror = () => updateProgress(i, null);
             }
         }
 
@@ -157,53 +125,42 @@
             
             const progress = (loadedCount / totalFrames) * 100;
             const now = Date.now();
-            const elapsed = (now - startTime) / 1000; // sekundda
+            const elapsed = (now - startTime) / 1000;
             
-            // UI Yangilash
             pBar.style.width = progress + "%";
             pText.innerText = Math.round(progress);
             
-            // Ma'lumot va Tezlik
             const totalDataMB = (loadedCount * avgFrameSize).toFixed(1);
-            const currentSpeed = (totalDataMB / elapsed).toFixed(2);
             dText.innerText = totalDataMB + " MB";
-            sText.innerText = elapsed > 0.1 ? currentSpeed + " MB/s" : "Hislash...";
-
-            // QOLGAN VAQT (To'g'ri mantiq)
-            if (loadedCount > 3) {
+            
+            if (elapsed > 0.1) {
+                const currentSpeed = (totalDataMB / elapsed).toFixed(2);
+                sText.innerText = currentSpeed + " MB/s";
                 const speedInFramesPerSec = loadedCount / elapsed;
-                const remainingFrames = totalFrames - loadedCount;
-                const timeLeft = Math.ceil(remainingFrames / speedInFramesPerSec);
+                const timeLeft = Math.ceil((totalFrames - loadedCount) / speedInFramesPerSec);
                 tText.innerText = timeLeft + " sek.";
             }
 
-            // Status xabarlari
             if (progress < 40) statusBubble.innerText = "Kadrlar yuklanmoqda...";
             else if (progress < 90) statusBubble.innerText = "3D model yig'ilmoqda...";
             else statusBubble.innerText = "Deyarli tayyor...";
 
-            // Birinchi rasm ko'rsatish
-            if (!imgEl.src && src) imgEl.src = src;
-
-            if (loadedCount === totalFrames) {
-                finishLoading();
-            }
+            if (loadedCount === 1) imgEl.src = src;
+            if (loadedCount === totalFrames) finishLoading();
         }
 
         function finishLoading() {
             statusBubble.innerText = "Tayyor! Suring yoki aylantiring.";
             statusBubble.style.color = "#00b0ff";
-            
             setTimeout(() => {
-                document.getElementById('dashboard').style.opacity = "0.3"; // To'liq yo'qotmaslik tavsiya etiladi
-                pBar.parentElement.classList.add('fade-out');
-            }, 2000);
+                document.getElementById('top-loader').classList.add('fade-out');
+            }, 1000);
         }
 
-        // SWIPE & INTERACTION
+        // --- INTERAKTIV QISM ---
         let isDragging = false;
         let startX = 0;
-        let baseIdx = 0;
+        let currentFrameIdx = 0;
 
         const handleStart = (e) => {
             isDragging = true;
@@ -213,17 +170,18 @@
 
         const handleMove = (e) => {
             if (!isDragging) return;
-            const currentX = (e.pageX || e.touches[0].pageX);
-            const diff = currentX - startX;
+            const x = (e.pageX || e.touches[0].pageX);
+            const diff = x - startX;
             
-            // Sezuvchanlik (15px surish = 1 kadr)
-            const frameOffset = Math.floor(diff / 15);
-            let newIdx = (baseIdx - frameOffset) % totalFrames;
+            // 10 piksel surish = 1 kadr almashishi
+            const sensitivity = 10;
+            const frameOffset = Math.floor(diff / sensitivity);
             
-            if (newIdx < 0) newIdx += totalFrames;
+            let displayIdx = (currentFrameIdx - frameOffset) % totalFrames;
+            if (displayIdx < 0) displayIdx += totalFrames;
             
-            if (images[newIdx]) {
-                imgEl.src = images[newIdx];
+            if (images[displayIdx]) {
+                imgEl.src = images[displayIdx];
             }
         };
 
@@ -232,20 +190,20 @@
             isDragging = false;
             viewer.style.cursor = "grab";
             
-            // Oxirgi turgan kadrni saqlab qolish
-            const currentX = (e.pageX || (e.changedTouches ? e.changedTouches[0].pageX : startX));
-            const diff = currentX - startX;
-            baseIdx = (baseIdx - Math.floor(diff / 15)) % totalFrames;
-            if (baseIdx < 0) baseIdx += totalFrames;
+            // Joriy kadr indeksini yangilab qo'yamiz
+            const x = (e.pageX || (e.changedTouches ? e.changedTouches[0].pageX : startX));
+            const diff = x - startX;
+            currentFrameIdx = (currentFrameIdx - Math.floor(diff / 10)) % totalFrames;
+            if (currentFrameIdx < 0) currentFrameIdx += totalFrames;
         };
 
-        const viewer = document.getElementById('viewer');
+        // Eventlarni bog'lash (Tuzatilgan!)
         viewer.addEventListener('mousedown', handleStart);
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('mouseup', handleEnd);
 
-        viewer.addEventListener('touchstart', handleStart, {passive: true});
-        viewer.addEventListener('touchmove', (e) => { handleMove(e); }, {passive: true});
+        viewer.addEventListener('touchstart', handleStart, {passive: false});
+        viewer.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, {passive: false});
         viewer.addEventListener('touchend', handleEnd);
 
         init();

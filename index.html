@@ -3,142 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360° Maket - 2X Full Rotation</title>
+    <title>360° Pro - Dashboard</title>
     <style>
+        :root { --primary: #00e676; --secondary: #00b0ff; --bg: #0a0a0a; }
         body {
-            margin: 0; padding: 0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            min-height: 100vh; background-color: #000;
-            font-family: 'Segoe UI', Tahoma, sans-serif; color: #fff;
-            overflow: hidden; touch-action: none;
+            margin: 0; padding: 0; background: var(--bg);
+            color: #fff; font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; overflow: hidden; touch-action: none;
         }
-        .container { width: 100%; max-width: 1200px; text-align: center; }
+
+        /* Yuqori progress chizig'i */
+        #top-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+            background: #1a1a1a; z-index: 1000;
+        }
+        #progress-bar {
+            width: 0%; height: 100%; 
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 15px var(--secondary); transition: width 0.3s linear;
+        }
+
+        .container { width: 100%; max-width: 1000px; position: relative; padding: 20px; }
+
+        /* Asosiy ko'rinish */
         #viewer {
-            position: relative; width: 100%; aspect-ratio: 16 / 9;
-            background: radial-gradient(circle, #222 0%, #000 100%);
-            border-radius: 8px; cursor: grab;
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; border: 1px solid #333;
+            width: 100%; aspect-ratio: 16 / 9;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            cursor: grab; border: 1px solid #222; position: relative;
         }
-        #viewer:active { cursor: grabbing; }
-        #product-image {
-            max-width: 100%; max-height: 100%; object-fit: contain;
-            user-select: none; -webkit-user-drag: none;
+        #product-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* Dashboard (Pastki panel) */
+        .dashboard {
+            margin-top: 25px; display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 15px; width: 100%; max-width: 600px;
         }
-        #loader {
-            position: absolute; background: rgba(0,0,0,0.95);
-            padding: 30px; border-radius: 15px; z-index: 20;
-            text-align: center; border: 1px solid #00a8ff;
-            box-shadow: 0 0 20px rgba(0, 168, 255, 0.2);
+        .stat-card {
+            background: #151515; padding: 12px; border-radius: 8px;
+            border-left: 3px solid var(--secondary);
         }
-        .instructions { margin-top: 15px; color: #666; font-size: 0.8rem; letter-spacing: 2px; }
+        .stat-label { font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font-size: 1.1rem; font-weight: bold; margin-top: 4px; color: #eee; }
+
+        #status-bubble {
+            grid-column: span 2; text-align: center; color: var(--primary);
+            font-size: 0.9rem; padding: 5px; animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        .hidden { opacity: 0; transform: translateY(20px); transition: 0.8s ease; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div id="top-loader">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div class="container" id="main-ui">
         <div id="viewer">
-            <div id="loader">
-                <div style="font-size: 1rem; color: #00a8ff; margin-bottom: 10px;">TIZIM YUKLANMOQDA</div>
-                <div style="font-size: 1.5rem; font-weight: bold;"><span id="percent">0.000</span>%</div>
-            </div>
-            <img id="product-image" src="" alt="360 Model">
+            <img id="product-image" src="" alt="Tayyorlanmoqda...">
         </div>
-        <div class="instructions">SENSITIVITY: 1 SWIPE = 180° | 2 SWIPES = 360°</div>
+
+        <div class="dashboard" id="dashboard">
+            <div id="status-bubble">Tizimga ulanilmoqda...</div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Progress</div>
+                <div class="stat-value"><span id="percent">0</span>% (<span id="count">0/96</span>)</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Vaqt</div>
+                <div id="time-left" class="stat-value">-- sek.</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Ma'lumot</div>
+                <div id="data-size" class="stat-value">0.0 MB</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Tezlik</div>
+                <div id="speed" class="stat-value">0.0 MB/s</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        const img = document.getElementById('product-image');
-        const viewer = document.getElementById('viewer');
-        const loader = document.getElementById('loader');
-        const percentText = document.getElementById('percent');
-
-        const totalFrames = 96; 
-        const framesPerSwipe = 48; // Ekran kengligi bo'yicha 180 gradus (96/2)
+        const totalFrames = 96;
+        const avgFrameSize = 0.45; // Taxminan bitta rasm 450 KB deb olindi
         
-        let validImages = [];
         let loadedCount = 0;
-        let currentIndex = 0;
-        let startX = 0;
-        let lastIndex = 0;
-        let isDragging = false;
+        let validImages = new Array(totalFrames);
+        let startTime = Date.now();
 
-        // 1. Rasmlarni yuklash (Fail-safe tartibda)
-        for (let i = 1; i <= totalFrames; i++) {
-            const tempImg = new Image();
-            tempImg.src = i + ".jpg"; 
-            tempImg.onload = () => {
-                validImages[i-1] = tempImg.src; 
-                updateProgress();
-            };
-            tempImg.onerror = () => {
-                updateProgress();
-            };
+        const imgEl = document.getElementById('product-image');
+        const pBar = document.getElementById('progress-bar');
+        const pText = document.getElementById('percent');
+        const cText = document.getElementById('count');
+        const tText = document.getElementById('time-left');
+        const sText = document.getElementById('speed');
+        const dText = document.getElementById('data-size');
+        const statusBubble = document.getElementById('status-bubble');
+
+        function init() {
+            for (let i = 1; i <= totalFrames; i++) {
+                const img = new Image();
+                img.src = i + ".jpg";
+                img.onload = () => update(i - 1, img.src);
+                img.onerror = () => update(i - 1, null);
+            }
         }
 
-        function updateProgress() {
+        function update(index, src) {
             loadedCount++;
-            let progress = (loadedCount / totalFrames) * 100;
-            percentText.innerText = progress.toFixed(3);
+            validImages[index] = src;
             
+            const progress = (loadedCount / totalFrames) * 100;
+            const now = Date.now();
+            const elapsed = (now - startTime) / 1000;
+            
+            // 1. Progress va Dashboard yangilash
+            pBar.style.width = progress + "%";
+            pText.innerText = Math.round(progress);
+            cText.innerText = `${loadedCount}/${totalFrames}`;
+            
+            // 2. Hajm va Tezlik hisobi
+            const currentData = (loadedCount * avgFrameSize).toFixed(1);
+            const currentSpeed = (currentData / elapsed).toFixed(1);
+            dText.innerText = currentData + " MB";
+            sText.innerText = (elapsed > 0.5) ? currentSpeed + " MB/s" : "Hisob...";
+
+            // 3. Qolgan vaqt
+            const remaining = Math.round((totalFrames - loadedCount) / (loadedCount / elapsed));
+            tText.innerText = (loadedCount > 5) ? remaining + " sek." : "--";
+
+            // 4. Dinamik status
+            if (progress < 30) statusBubble.innerText = "Kadrlar yuklanmoqda...";
+            else if (progress < 70) statusBubble.innerText = "Grafika yig'ilmoqda...";
+            else if (progress < 100) statusBubble.innerText = "Tayyorlanmoqda...";
+
+            // Birinchi rasm chiqishi
+            if (loadedCount === 1 && src) imgEl.src = src;
+
             if (loadedCount === totalFrames) {
-                // Mavjud bo'lmagan rasmlarni olib tashlaymiz (Xavfsizlik uchun)
-                validImages = validImages.filter(src => src !== undefined);
-                if (validImages.length > 0) {
-                    img.src = validImages[0];
-                    loader.style.display = 'none';
-                }
+                statusBubble.innerText = "Tayyor! Aylantirishingiz mumkin.";
+                setTimeout(() => {
+                    document.getElementById('dashboard').classList.add('hidden');
+                    document.getElementById('top-loader').classList.add('hidden');
+                }, 3000);
             }
         }
 
-        // 2. 180° Sezuvchanlik logikasi
-        const handleStart = (e) => {
-            if (validImages.length === 0) return;
-            isDragging = true;
-            startX = e.pageX || e.touches[0].pageX;
-            lastIndex = currentIndex;
+        // SWIPE LOGIKASI
+        let isDragging = false, startX = 0, currentIdx = 0;
+        const viewer = document.getElementById('viewer');
+
+        const start = (e) => { isDragging = true; startX = e.pageX || e.touches[0].pageX; };
+        const move = (e) => {
+            if (!isDragging) return;
+            const x = e.pageX || e.touches[0].pageX;
+            const diff = x - startX;
+            let newIdx = Math.floor(currentIdx - diff / 15) % totalFrames;
+            if (newIdx < 0) newIdx += totalFrames;
+            if (validImages[newIdx]) imgEl.src = validImages[newIdx];
         };
+        const end = () => { isDragging = false; };
 
-        const handleMove = (e) => {
-            if (!isDragging || validImages.length === 0) return;
-            
-            const currentX = e.pageX || e.touches[0].pageX;
-            const diffX = currentX - startX;
-            const width = viewer.offsetWidth;
-            
-            // Ekran kengligi bo'yicha siljish foizini hisoblaymiz
-            const swipeRatio = diffX / width;
-            
-            // Foizni kadrlar soniga ko'paytiramiz (Siz aytgan 48 kadrga nisbatan)
-            const deltaFrames = Math.round(swipeRatio * framesPerSwipe);
-            
-            // Yangi kadrni aniqlash (Loop bilan)
-            let newIndex = (lastIndex - deltaFrames) % validImages.length;
-            
-            if (newIndex < 0) newIndex = validImages.length + newIndex;
+        viewer.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+        viewer.addEventListener('touchstart', start);
+        window.addEventListener('touchmove', (e) => { e.preventDefault(); move(e); }, {passive: false});
+        window.addEventListener('touchend', end);
 
-            if (newIndex !== currentIndex) {
-                currentIndex = newIndex;
-                img.src = validImages[currentIndex];
-            }
-        };
-
-        const handleEnd = () => {
-            isDragging = false;
-        };
-
-        // Event Listeners
-        viewer.addEventListener('mousedown', handleStart);
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('mouseup', handleEnd);
-
-        viewer.addEventListener('touchstart', handleStart);
-        window.addEventListener('touchmove', (e) => {
-            if (e.cancelable) e.preventDefault(); 
-            handleMove(e);
-        }, { passive: false });
-        window.addEventListener('touchend', handleEnd);
+        init();
     </script>
 </body>
 </html>

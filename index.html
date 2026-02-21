@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360° Maket - 2X Full Rotation</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 100vh; background-color: #000;
+            font-family: 'Segoe UI', Tahoma, sans-serif; color: #fff;
+            overflow: hidden; touch-action: none;
+        }
+        .container { width: 100%; max-width: 1200px; text-align: center; }
+        #viewer {
+            position: relative; width: 100%; aspect-ratio: 16 / 9;
+            background: radial-gradient(circle, #222 0%, #000 100%);
+            border-radius: 8px; cursor: grab;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 1px solid #333;
+        }
+        #viewer:active { cursor: grabbing; }
+        #product-image {
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            user-select: none; -webkit-user-drag: none;
+        }
+        #loader {
+            position: absolute; background: rgba(0,0,0,0.95);
+            padding: 30px; border-radius: 15px; z-index: 20;
+            text-align: center; border: 1px solid #00a8ff;
+            box-shadow: 0 0 20px rgba(0, 168, 255, 0.2);
+        }
+        .instructions { margin-top: 15px; color: #666; font-size: 0.8rem; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="viewer">
+            <div id="loader">
+                <div style="font-size: 1rem; color: #00a8ff; margin-bottom: 10px;">TIZIM YUKLANMOQDA</div>
+                <div style="font-size: 1.5rem; font-weight: bold;"><span id="percent">0.000</span>%</div>
+            </div>
+            <img id="product-image" src="" alt="360 Model">
+        </div>
+        <div class="instructions">SENSITIVITY: 1 SWIPE = 180° | 2 SWIPES = 360°</div>
+    </div>
+
+    <script>
+        const img = document.getElementById('product-image');
+        const viewer = document.getElementById('viewer');
+        const loader = document.getElementById('loader');
+        const percentText = document.getElementById('percent');
+
+        const totalFrames = 96; 
+        const framesPerSwipe = 48; // Ekran kengligi bo'yicha 180 gradus (96/2)
+        
+        let validImages = [];
+        let loadedCount = 0;
+        let currentIndex = 0;
+        let startX = 0;
+        let lastIndex = 0;
+        let isDragging = false;
+
+        // 1. Rasmlarni yuklash (Fail-safe tartibda)
+        for (let i = 1; i <= totalFrames; i++) {
+            const tempImg = new Image();
+            tempImg.src = i + ".jpg"; 
+            tempImg.onload = () => {
+                validImages[i-1] = tempImg.src; 
+                updateProgress();
+            };
+            tempImg.onerror = () => {
+                updateProgress();
+            };
+        }
+
+        function updateProgress() {
+            loadedCount++;
+            let progress = (loadedCount / totalFrames) * 100;
+            percentText.innerText = progress.toFixed(3);
+            
+            if (loadedCount === totalFrames) {
+                // Mavjud bo'lmagan rasmlarni olib tashlaymiz (Xavfsizlik uchun)
+                validImages = validImages.filter(src => src !== undefined);
+                if (validImages.length > 0) {
+                    img.src = validImages[0];
+                    loader.style.display = 'none';
+                }
+            }
+        }
+
+        // 2. 180° Sezuvchanlik logikasi
+        const handleStart = (e) => {
+            if (validImages.length === 0) return;
+            isDragging = true;
+            startX = e.pageX || e.touches[0].pageX;
+            lastIndex = currentIndex;
+        };
+
+        const handleMove = (e) => {
+            if (!isDragging || validImages.length === 0) return;
+            
+            const currentX = e.pageX || e.touches[0].pageX;
+            const diffX = currentX - startX;
+            const width = viewer.offsetWidth;
+            
+            // Ekran kengligi bo'yicha siljish foizini hisoblaymiz
+            const swipeRatio = diffX / width;
+            
+            // Foizni kadrlar soniga ko'paytiramiz (Siz aytgan 48 kadrga nisbatan)
+            const deltaFrames = Math.round(swipeRatio * framesPerSwipe);
+            
+            // Yangi kadrni aniqlash (Loop bilan)
+            let newIndex = (lastIndex - deltaFrames) % validImages.length;
+            
+            if (newIndex < 0) newIndex = validImages.length + newIndex;
+
+            if (newIndex !== currentIndex) {
+                currentIndex = newIndex;
+                img.src = validImages[currentIndex];
+            }
+        };
+
+        const handleEnd = () => {
+            isDragging = false;
+        };
+
+        // Event Listeners
+        viewer.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        viewer.addEventListener('touchstart', handleStart);
+        window.addEventListener('touchmove', (e) => {
+            if (e.cancelable) e.preventDefault(); 
+            handleMove(e);
+        }, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+    </script>
+</body>
+</html>
